@@ -102,7 +102,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $restaurantId = $pdo->lastInsertId();
 
         // Redirect to success page
-        header("Location: ./restaurant/index.php?success=1&id=$restaurantId");
+        header("Location: ./index.php?success=1&id=$restaurantId");
         exit();
         
     } catch (Exception $e) {

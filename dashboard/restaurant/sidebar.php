@@ -7,6 +7,10 @@
   $usr = $stmt->fetch();
   $image = $usr['image'];
 
+  if(!isset($image)){
+    $image = "https://dovercourt.org/wp-content/uploads/2019/11/610-6104451_image-placeholder-png-user-profile-placeholder-image-png.jpg";
+  }
+
 ?>
 
 <div class="sidebar">
@@ -71,7 +75,7 @@
             <span class="user-name">Admin</span>
             <span class="user-role">Restaurant Owner</span>
         </div>
-        <a href="#" class="logout-btn">
+        <a href="../../auth/logout.php" class="logout-btn">
             <i class="fas fa-sign-out-alt"></i>
         </a>
     </div>

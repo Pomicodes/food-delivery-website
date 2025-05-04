@@ -13,7 +13,11 @@ $stmt = $pdo->prepare("SELECT * FROM restaurants WHERE user_id = ?");
 $stmt->execute([$_SESSION['user_id']]);
 $restaurant = $stmt->fetch();
 $restaurantId = $restaurant['id'] ?? null;
-
+if(!isset($restaurantId)){ 
+    header('Location: ./createRestaurant.php');
+    exit();
+    
+}
 // Set default date range (last 7 days)
 $endDate = date('Y-m-d');
 $startDate = date('Y-m-d', strtotime('-7 days'));
