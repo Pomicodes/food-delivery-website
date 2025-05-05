@@ -1,5 +1,18 @@
 <?php
-  include '../layout/headerLayout.php'
+  include '../layout/headerLayout.php';
+
+  // Show error messages if any
+  if (isset($_GET['error'])) {
+      $errorMsg = '';
+      if ($_GET['error'] === 'wrong_password') {
+          $errorMsg = 'Incorrect password. Please try again.';
+      } elseif ($_GET['error'] === 'user_not_found') {
+          $errorMsg = 'No account found with that email.';
+      }
+      if ($errorMsg) {
+          echo '<div class="notification is-danger has-text-centered">' . htmlspecialchars($errorMsg) . '</div>';
+      }
+  }
 ?>
 
 <section class="a-nav">

@@ -118,3 +118,7 @@ a:hover {
 </style>
 </head>
 <body class="<?php echo isset($_COOKIE['darkMode']) && $_COOKIE['darkMode'] === 'true' ? 'dark-mode' : ''; ?>">
+
+<span>
+  <?php echo isset($_SESSION['user_name']) ? htmlspecialchars($_SESSION['user_name']) : 'User'; ?>
+</span>
