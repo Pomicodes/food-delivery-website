@@ -30,27 +30,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_to_cart'])) {
     // Initialize cart if not exists
     if (!isset($_SESSION['cart'])) {
         $_SESSION['cart'] = [
-            'restaurant_id' => $restaurantId,
             'items' => []
         ];
     }
 
-    // Check if adding from different restaurant
-    if ($_SESSION['cart']['restaurant_id'] != $restaurantId) {
-        $_SESSION['cart_error'] = "You can only order from one restaurant at a time. Please clear your cart or complete your current order first.";
-        header("Location: index.php?restaurant_id=$restaurantId");
-        exit();
-    }
-
     // Get menu item details
-    $stmt = $pdo->prepare("SELECT * FROM menu_items WHERE id = ? AND restaurant_id = ?");
+    $stmt = $pdo->prepare("SELECT mi.*, r.name as restaurant_name, r.image as restaurant_image 
+                          FROM menu_items mi 
+                          JOIN restaurants r ON mi.restaurant_id = r.id 
+                          WHERE mi.id = ? AND mi.restaurant_id = ?");
     $stmt->execute([$menuItemId, $restaurantId]);
     $menuItem = $stmt->fetch();
 
     if ($menuItem) {
+        // Initialize restaurant in cart if not exists
+        if (!isset($_SESSION['cart']['items'][$restaurantId])) {
+            $_SESSION['cart']['items'][$restaurantId] = [
+                'restaurant_name' => $menuItem['restaurant_name'],
+                'restaurant_image' => $menuItem['restaurant_image'],
+                'items' => []
+            ];
+        }
+
         // Add or update item in cart
         $itemFound = false;
-        foreach ($_SESSION['cart']['items'] as &$item) {
+        foreach ($_SESSION['cart']['items'][$restaurantId]['items'] as &$item) {
             if ($item['id'] == $menuItemId) {
                 $item['quantity'] += $quantity;
                 $itemFound = true;
@@ -59,7 +63,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_to_cart'])) {
         }
 
         if (!$itemFound) {
-            $_SESSION['cart']['items'][] = [
+            $_SESSION['cart']['items'][$restaurantId]['items'][] = [
                 'id' => $menuItemId,
                 'name' => $menuItem['name'],
                 'price' => $menuItem['price'],
@@ -78,20 +82,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_to_cart'])) {
 // Handle removing from cart
 if (isset($_GET['remove_item'])) {
     $itemId = $_GET['remove_item'];
+    $restaurantId = $_GET['restaurant_id'];
     
-    if (isset($_SESSION['cart']['items'])) {
-        foreach ($_SESSION['cart']['items'] as $key => $item) {
+    if (isset($_SESSION['cart']['items'][$restaurantId]['items'])) {
+        foreach ($_SESSION['cart']['items'][$restaurantId]['items'] as $key => $item) {
             if ($item['id'] == $itemId) {
-                unset($_SESSION['cart']['items'][$key]);
-                $_SESSION['cart']['items'] = array_values($_SESSION['cart']['items']);
+                unset($_SESSION['cart']['items'][$restaurantId]['items'][$key]);
+                $_SESSION['cart']['items'][$restaurantId]['items'] = array_values($_SESSION['cart']['items'][$restaurantId]['items']);
+                
+                // If restaurant has no items, remove it
+                if (empty($_SESSION['cart']['items'][$restaurantId]['items'])) {
+                    unset($_SESSION['cart']['items'][$restaurantId]);
+                }
+                
                 $_SESSION['cart_success'] = "Item removed from cart!";
                 break;
             }
-        }
-        
-        // If cart is empty, clear restaurant_id
-        if (empty($_SESSION['cart']['items'])) {
-            unset($_SESSION['cart']['restaurant_id']);
         }
     }
     
@@ -129,34 +135,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
         $stmt->execute([$address, $userId]);
     }
 
-    // Calculate total
-    $total = 0;
-    foreach ($_SESSION['cart']['items'] as $item) {
-        $total += $item['price'] * $item['quantity'];
-    }
-
-    // Create order
     try {
         $pdo->beginTransaction();
 
-        // Insert order
-        $stmt = $pdo->prepare("INSERT INTO orders (customer_id, restaurant_id, total, status, created_at) VALUES (?, ?, ?, 'placed', NOW())");
-        $stmt->execute([$userId, $_SESSION['cart']['restaurant_id'], $total]);
-        $orderId = $pdo->lastInsertId();
+        // Create orders for each restaurant
+        foreach ($_SESSION['cart']['items'] as $restaurantId => $restaurantData) {
+            // Calculate total for this restaurant
+            $total = 0;
+            foreach ($restaurantData['items'] as $item) {
+                $total += $item['price'] * $item['quantity'];
+            }
 
-        // Insert order items
-        foreach ($_SESSION['cart']['items'] as $item) {
-            $stmt = $pdo->prepare("INSERT INTO order_items (order_id, menu_item_id, quantity, price) VALUES (?, ?, ?, ?)");
-            $stmt->execute([$orderId, $item['id'], $item['quantity'], $item['price']]);
+            // Insert order
+            $stmt = $pdo->prepare("INSERT INTO orders (customer_id, restaurant_id, total, status, created_at) VALUES (?, ?, ?, 'placed', NOW())");
+            $stmt->execute([$userId, $restaurantId, $total]);
+            $orderId = $pdo->lastInsertId();
+
+            // Insert order items
+            foreach ($restaurantData['items'] as $item) {
+                $stmt = $pdo->prepare("INSERT INTO order_items (order_id, menu_item_id, quantity, price) VALUES (?, ?, ?, ?)");
+                $stmt->execute([$orderId, $item['id'], $item['quantity'], $item['price']]);
+            }
         }
 
         $pdo->commit();
 
         // Clear cart and show success
         unset($_SESSION['cart']);
-        $_SESSION['order_success'] = "Order placed successfully! Your order number is #$orderId";
+        $_SESSION['order_success'] = "Orders placed successfully!";
 
-        // Redirect to orders page or show success
+        // Redirect to orders page
         header("Location: orders.php");
         exit();
 
@@ -493,20 +501,57 @@ if (isset($_GET['restaurant_id'])) {
                     <h3 class="text-xl font-bold text-orange-600 mb-4 flex items-center">
                         <i class="fas fa-shopping-cart mr-2 animate-bounce"></i> Your Cart
                     </h3>
-                    <div class="space-y-3">
-                        <?php if (isset($_SESSION['cart']['items']) && count($_SESSION['cart']['items']) > 0): ?>
-                            <?php foreach ($_SESSION['cart']['items'] as $item): ?>
-                                <div class="cart-item flex items-center justify-between bg-white rounded-lg px-3 py-2 shadow-sm">
-                                    <div class="flex items-center">
-                                        <img src="../../<?= $item['image'] ?: 'assets/default-food.jpg' ?>" alt="<?= htmlspecialchars($item['name']) ?>" class="w-10 h-10 rounded object-cover mr-3">
-                                        <div>
-                                            <div class="font-semibold text-gray-800 text-base"><?= htmlspecialchars($item['name']) ?></div>
-                                            <div class="text-xs text-gray-500">x<?= $item['quantity'] ?> &bull; $<?= number_format($item['price'], 2) ?></div>
+                    <div class="space-y-4">
+                        <?php if (isset($_SESSION['cart']) && !empty($_SESSION['cart']['items'])): ?>
+                            <?php 
+                            $grandTotal = 0;
+                            foreach ($_SESSION['cart']['items'] as $restaurantId => $restaurantData): 
+                                $restaurantTotal = 0;
+                            ?>
+                                <div class="restaurant-cart-section bg-orange-50 rounded-lg p-3 mb-4">
+                                    <div class="flex items-center mb-2">
+                                        <img src="../../<?= htmlspecialchars($restaurantData['restaurant_image']) ?>" 
+                                             alt="<?= htmlspecialchars($restaurantData['restaurant_name']) ?>" 
+                                             class="w-8 h-8 rounded-full object-cover mr-2">
+                                        <h4 class="font-semibold text-orange-800"><?= htmlspecialchars($restaurantData['restaurant_name']) ?></h4>
+                                    </div>
+                                    <div class="space-y-2">
+                                        <?php foreach ($restaurantData['items'] as $item): 
+                                            $itemTotal = $item['price'] * $item['quantity'];
+                                            $restaurantTotal += $itemTotal;
+                                        ?>
+                                            <div class="cart-item flex items-center justify-between bg-white rounded-lg px-3 py-2 shadow-sm">
+                                                <div class="flex items-center">
+                                                    <img src="../../<?= htmlspecialchars($item['image']) ?>" 
+                                                         alt="<?= htmlspecialchars($item['name']) ?>" 
+                                                         class="w-10 h-10 rounded object-cover mr-3">
+                                                    <div>
+                                                        <div class="font-semibold text-gray-800 text-base"><?= htmlspecialchars($item['name']) ?></div>
+                                                        <div class="text-xs text-gray-500">x<?= $item['quantity'] ?> &bull; $<?= number_format($item['price'], 2) ?></div>
+                                                    </div>
+                                                </div>
+                                                <div class="flex items-center">
+                                                    <span class="text-orange-500 font-bold mr-3">$<?= number_format($itemTotal, 2) ?></span>
+                                                    <a href="index.php?remove_item=<?= $item['id'] ?>&restaurant_id=<?= $restaurantId ?>" 
+                                                       class="text-red-400 hover:text-red-600">
+                                                        <i class="fas fa-times"></i>
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        <?php endforeach; ?>
+                                        <div class="text-right text-sm font-semibold text-orange-800">
+                                            Restaurant Total: $<?= number_format($restaurantTotal, 2) ?>
                                         </div>
                                     </div>
-                                    <div class="text-orange-500 font-bold">$<?= number_format($item['price'] * $item['quantity'], 2) ?></div>
                                 </div>
+                                <?php $grandTotal += $restaurantTotal; ?>
                             <?php endforeach; ?>
+                            <div class="border-t border-orange-200 pt-3 mt-3">
+                                <div class="flex justify-between items-center text-lg font-bold text-orange-600">
+                                    <span>Grand Total:</span>
+                                    <span>$<?= number_format($grandTotal, 2) ?></span>
+                                </div>
+                            </div>
                         <?php else: ?>
                             <div class="text-gray-400 text-center py-8">
                                 <i class="fas fa-shopping-basket text-3xl mb-2 animate-pulse"></i>
@@ -514,7 +559,7 @@ if (isset($_GET['restaurant_id'])) {
                             </div>
                         <?php endif; ?>
                     </div>
-                    <?php if (isset($_SESSION['cart']['items']) && count($_SESSION['cart']['items']) > 0): ?>
+                    <?php if (isset($_SESSION['cart']) && !empty($_SESSION['cart']['items'])): ?>
                         <form method="POST" class="mt-6">
                             <div class="mb-4">
                                 <label for="delivery_address" class="block text-sm font-medium text-gray-700 mb-1">
@@ -529,7 +574,7 @@ if (isset($_GET['restaurant_id'])) {
                                 ><?= htmlspecialchars($customerAddress ?? '') ?></textarea>
                             </div>
                             <button type="submit" name="place_order" class="glow-btn w-full bg-orange-500 text-white py-3 rounded-lg font-bold text-lg shadow hover:bg-orange-600 transition-all duration-200">
-                                <i class="fas fa-check-circle mr-2"></i> Place Order
+                                <i class="fas fa-check-circle mr-2"></i> Place All Orders
                             </button>
                         </form>
                         <a href="index.php?clear_cart=1" class="block text-center text-orange-400 hover:text-orange-600 mt-3 text-sm transition">
