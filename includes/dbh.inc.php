@@ -2,9 +2,9 @@
 
 $host = "127.0.0.1";
 $port = "3306";
-$dbname = "dl";
+$dbname = "fooddelievery";
 $dbusrn = "root";
-$dbpwd = "oliy2627";
+$dbpwd = "";  // Default XAMPP password is empty
 
 // Correct DSN format
 $dsn = "mysql:host=$host;port=$port;dbname=$dbname;charset=utf8mb4";

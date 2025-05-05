@@ -112,89 +112,129 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Account | Savory</title>
+    <title>My Account | Sweet Bite</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
     <style>
+        body {
+            background: linear-gradient(135deg, #fff7ed 0%, #ffe3c0 100%);
+        }
+        .glass {
+            background: rgba(255,255,255,0.7);
+            box-shadow: 0 8px 32px 0 rgba(31,38,135,0.10);
+            backdrop-filter: blur(8px);
+            border-radius: 1.5rem;
+        }
         .profile-card {
-            transition: all 0.3s ease;
+            transition: all 0.3s cubic-bezier(.4,0,.2,1);
+            border: 2px solid #fff7ed;
         }
         .profile-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            transform: scale(1.02) translateY(-2px);
+            box-shadow: 0 8px 32px #ff7b2522;
+            border: 2px solid #ff7b25;
+        }
+        .file-input-label {
+            transition: background 0.2s;
         }
         .file-input-label:hover {
-            background-color: #f3f4f6;
+            background: #fff7ed;
+        }
+        .glow-btn {
+            transition: box-shadow 0.2s, background 0.2s;
+        }
+        .glow-btn:hover {
+            box-shadow: 0 0 0 4px #ffedd5, 0 4px 20px #ff7b25a0;
+            background: #ff7b25;
+            color: #fff;
+        }
+        .fade-in {
+            animation: fadeIn 0.8s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .footer {
+            background: #fff7ed;
+            color: #ff7b25;
+            padding: 2rem 0 1rem 0;
+            text-align: center;
+            border-radius: 2rem 2rem 0 0;
+            margin-top: 3rem;
+            font-weight: 500;
+        }
+        .footer a {
+            color: #ff7b25;
+            margin: 0 0.5rem;
+            transition: color 0.2s;
+        }
+        .footer a:hover {
+            color: #ff9d5c;
         }
     </style>
 </head>
-<body class="bg-gray-50">
+<body class="min-h-screen">
     <!-- Navigation -->
-    <nav class="bg-white shadow-md">
+    <nav class="bg-white shadow-lg glass mb-8">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between h-16">
+            <div class="flex justify-between h-16 items-center">
                 <div class="flex items-center">
-                    <a href="index.php" class="text-xl font-bold text-orange-500 flex items-center">
-                        <i class="fas fa-utensils mr-2"></i>
-                        Savory
+                    <a href="index.php" class="text-2xl font-extrabold text-orange-500 flex items-center tracking-tight">
+                        <i class="fas fa-utensils mr-2 animate-spin-slow"></i>
+                        Sweet Bite
                     </a>
                 </div>
                 <div class="flex items-center space-x-4">
-                    <a href="index.php" class="text-gray-600 hover:text-orange-500">
+                    <a href="index.php" class="text-gray-700 hover:text-orange-500 font-medium transition">
                         <i class="fas fa-home mr-1"></i> Home
                     </a>
-                    <a href="my_orders.php" class="text-gray-600 hover:text-orange-500">
+                    <a href="orders.php" class="text-gray-700 hover:text-orange-500 font-medium transition">
                         <i class="fas fa-clipboard-list mr-1"></i> My Orders
                     </a>
-                    <a href="../../auth/logout.php" class="text-gray-600 hover:text-orange-500">
+                    <a href="/food-delivery-website/auth/logout.php" class="text-gray-700 hover:text-orange-500 font-medium transition">
                         <i class="fas fa-sign-out-alt mr-1"></i> Logout
                     </a>
                 </div>
             </div>
         </div>
     </nav>
-
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 fade-in">
         <!-- Page Header -->
         <div class="flex justify-between items-center mb-8">
-            <h1 class="text-3xl font-bold text-gray-800">
-                <i class="fas fa-user-circle text-orange-500 mr-2"></i>
+            <h1 class="text-3xl font-extrabold text-orange-600 tracking-tight">
+                <i class="fas fa-user-circle text-orange-500 mr-2 animate-bounce"></i>
                 My Account
             </h1>
         </div>
-
         <!-- Messages -->
         <?php if (isset($_SESSION['error'])): ?>
-            <div class="bg-red-100 border-l-4 border-red-500 p-4 mb-6">
-                <p class="text-red-700"><?= $_SESSION['error'] ?></p>
+            <div class="bg-red-100 border-l-4 border-red-500 p-4 mb-6 rounded shadow">
+                <p class="text-red-700 text-lg font-semibold"><?= $_SESSION['error'] ?></p>
             </div>
             <?php unset($_SESSION['error']); ?>
         <?php endif; ?>
-
         <?php if (isset($_SESSION['success'])): ?>
-            <div class="bg-green-100 border-l-4 border-green-500 p-4 mb-6">
-                <p class="text-green-700"><?= $_SESSION['success'] ?></p>
+            <div class="bg-green-100 border-l-4 border-green-500 p-4 mb-6 rounded shadow">
+                <p class="text-green-700 text-lg font-semibold"><?= $_SESSION['success'] ?></p>
             </div>
             <?php unset($_SESSION['success']); ?>
         <?php endif; ?>
-
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <!-- Profile Card -->
             <div class="lg:col-span-1">
-                <div class="profile-card bg-white rounded-lg shadow overflow-hidden">
-                    <div class="p-6">
-                        <div class="flex flex-col items-center">
-                            <div class="relative mb-4">
-                                <img src="../<?= htmlspecialchars($user['image'] ?: 'assets/default-user.jpg') ?>" 
-                                     alt="Profile Image" 
-                                     class="w-32 h-32 rounded-full object-cover border-4 border-orange-100">
-                                <label for="image-upload" class="absolute bottom-0 right-0 bg-white p-2 rounded-full shadow-md cursor-pointer hover:bg-gray-100">
-                                    <i class="fas fa-camera text-orange-500"></i>
-                                </label>
-                            </div>
-                            <h2 class="text-xl font-bold text-center"><?= htmlspecialchars($user['name']) ?></h2>
-                            <p class="text-gray-500 text-center"><?= ucfirst($userRole) ?></p>
+                <div class="profile-card bg-white rounded-xl shadow overflow-hidden glass fade-in">
+                    <div class="p-8 flex flex-col items-center">
+                        <div class="relative mb-4">
+                            <img src="../<?= htmlspecialchars($user['image'] ?: 'assets/default-user.jpg') ?>" 
+                                 alt="Profile Image" 
+                                 class="w-32 h-32 rounded-full object-cover border-4 border-orange-100">
+                            <label for="image-upload" class="file-input-label absolute bottom-0 right-0 bg-white p-2 rounded-full shadow-md cursor-pointer hover:bg-orange-100 border border-orange-200">
+                                <i class="fas fa-camera text-orange-500"></i>
+                            </label>
                         </div>
+                        <h2 class="text-xl font-bold text-center text-gray-800 mb-1"><?= htmlspecialchars($user['name']) ?></h2>
+                        <p class="text-gray-500 text-center mb-2 capitalize"><?= htmlspecialchars($userRole) ?></p>
                     </div>
                 </div>
             </div>
