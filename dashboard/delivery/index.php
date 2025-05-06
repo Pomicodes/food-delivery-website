@@ -577,12 +577,12 @@ function getStatusBadgeClass($status) {
                             <div class="p-4 border-t bg-gray-50">
                                 <form method="POST" class="flex justify-end space-x-4">
                                     <input type="hidden" name="order_id" value="<?= $order['id'] ?>">
-                                    <?php if ($order['status'] === 'ready'): ?>
+                                            <?php if ($order['status'] === 'ready'): ?>
                                         <button type="submit" name="update_status" value="picked_up" 
                                                 class="action-button bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600">
                                             <i class="fas fa-box mr-1"></i> Pick Up Order
                                         </button>
-                                    <?php elseif ($order['status'] === 'picked_up'): ?>
+                                            <?php elseif ($order['status'] === 'picked_up'): ?>
                                         <input type="hidden" name="status" value="delivered">
                                         <button type="submit" name="update_status" value="1"
                                             class="action-button bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600">

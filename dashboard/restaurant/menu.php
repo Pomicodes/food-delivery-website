@@ -74,10 +74,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif (isset($_POST['delete_item'])) {
         // Delete menu item
         $id = $_POST['item_id'];
-        $stmt = $pdo->prepare("DELETE FROM menu_items WHERE id = ? AND restaurant_id = ?");
-        $stmt->execute([$id, $restaurantId]);
         
-        $_SESSION['success_message'] = 'Menu item deleted successfully!';
+        try {
+            // Start transaction
+            $pdo->beginTransaction();
+            
+            // First, update order_items to set menu_item_id to NULL
+            $stmt = $pdo->prepare("UPDATE order_items SET menu_item_id = NULL WHERE menu_item_id = ?");
+            $stmt->execute([$id]);
+            
+            // Then delete the menu item
+            $stmt = $pdo->prepare("DELETE FROM menu_items WHERE id = ? AND restaurant_id = ?");
+            $stmt->execute([$id, $restaurantId]);
+            
+            // Commit transaction
+            $pdo->commit();
+            
+            $_SESSION['success_message'] = 'Menu item deleted successfully!';
+        } catch (PDOException $e) {
+            // Rollback on error
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            $_SESSION['error_message'] = 'Failed to delete menu item: ' . $e->getMessage();
+        }
+        
         header("Location: menu.php");
         exit();
     }
@@ -133,6 +154,14 @@ if ($restaurantId) {
                         <p class="text-green-700"><?= $_SESSION['success_message'] ?></p>
                     </div>
                     <?php unset($_SESSION['success_message']); ?>
+                <?php endif; ?>
+
+                <!-- Error Message -->
+                <?php if (isset($_SESSION['error_message'])): ?>
+                    <div class="bg-red-100 border-l-4 border-red-500 p-4 mb-6">
+                        <p class="text-red-700"><?= $_SESSION['error_message'] ?></p>
+                    </div>
+                    <?php unset($_SESSION['error_message']); ?>
                 <?php endif; ?>
 
                 <!-- Menu Items Grid -->

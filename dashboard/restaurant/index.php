@@ -420,13 +420,13 @@ if ($restaurantId) {
                                                 </button>
                                                 <input type="hidden" name="status" value="ready">
                                             <?php else: ?>
-                                                <select name="status" class="border rounded px-3 py-2 text-sm" onchange="this.form.submit()">
-                                                    <option value="placed" <?= $order['status'] === 'placed' ? 'selected' : '' ?>>Placed</option>
-                                                    <option value="ready" <?= $order['status'] === 'ready' ? 'selected' : '' ?>>Ready</option>
-                                                    <option value="picked_up" <?= $order['status'] === 'picked_up' ? 'selected' : '' ?>>Picked Up</option>
-                                                    <option value="delivered" <?= $order['status'] === 'delivered' ? 'selected' : '' ?>>Delivered</option>
-                                                </select>
-                                                <input type="hidden" name="update_status" value="1">
+                                            <select name="status" class="border rounded px-3 py-2 text-sm" onchange="this.form.submit()">
+                                                <option value="placed" <?= $order['status'] === 'placed' ? 'selected' : '' ?>>Placed</option>
+                                                <option value="ready" <?= $order['status'] === 'ready' ? 'selected' : '' ?>>Ready</option>
+                                                <option value="picked_up" <?= $order['status'] === 'picked_up' ? 'selected' : '' ?>>Picked Up</option>
+                                                <option value="delivered" <?= $order['status'] === 'delivered' ? 'selected' : '' ?>>Delivered</option>
+                                            </select>
+                                            <input type="hidden" name="update_status" value="1">
                                             <?php endif; ?>
                                         </form>
                                     </div>
