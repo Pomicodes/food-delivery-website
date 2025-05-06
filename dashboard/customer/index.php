@@ -146,15 +146,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
                 $total += $item['price'] * $item['quantity'];
             }
 
-            // Insert order
-            $stmt = $pdo->prepare("INSERT INTO orders (customer_id, restaurant_id, total, status, created_at) VALUES (?, ?, ?, 'placed', NOW())");
+        // Insert order
+        $stmt = $pdo->prepare("INSERT INTO orders (customer_id, restaurant_id, total, status, created_at) VALUES (?, ?, ?, 'placed', NOW())");
             $stmt->execute([$userId, $restaurantId, $total]);
-            $orderId = $pdo->lastInsertId();
+        $orderId = $pdo->lastInsertId();
 
-            // Insert order items
+        // Insert order items
             foreach ($restaurantData['items'] as $item) {
-                $stmt = $pdo->prepare("INSERT INTO order_items (order_id, menu_item_id, quantity, price) VALUES (?, ?, ?, ?)");
-                $stmt->execute([$orderId, $item['id'], $item['quantity'], $item['price']]);
+            $stmt = $pdo->prepare("INSERT INTO order_items (order_id, menu_item_id, quantity, price) VALUES (?, ?, ?, ?)");
+            $stmt->execute([$orderId, $item['id'], $item['quantity'], $item['price']]);
             }
         }
 
@@ -428,9 +428,9 @@ if (isset($_GET['restaurant_id'])) {
                                     <div class="p-5">
                                         <h3 class="font-bold text-xl text-gray-800 mb-1"><?= htmlspecialchars($restaurant['name']) ?></h3>
                                         <p class="text-gray-500 text-sm flex items-center">
-                                            <i class="fas fa-map-marker-alt mr-1 text-orange-500"></i>
-                                            <?= htmlspecialchars($restaurant['address']) ?>
-                                        </p>
+                                                    <i class="fas fa-map-marker-alt mr-1 text-orange-500"></i>
+                                                    <?= htmlspecialchars($restaurant['address']) ?>
+                                                </p>
                                     </div>
                                 </a>
                             <?php endforeach; ?>
