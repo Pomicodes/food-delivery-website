@@ -193,7 +193,7 @@
                 <div>
                     <h3 class="text-xl font-bold mb-4 flex items-center">
                         <i class="fas fa-utensils mr-2 text-orange-500"></i>
-                        Savory
+                        Sweet bite
                     </h3>
                     <p class="text-gray-400">
                         Bringing your favorite restaurant meals to your doorstep with speed and care.
@@ -248,7 +248,7 @@
             </div>
             
             <div class="border-t border-gray-800 mt-12 pt-8 text-center text-gray-400">
-                <p>&copy; <?= date('Y') ?> Savory. All rights reserved.</p>
+                <p>&copy; <?= date('Y') ?> Sweet biet. All rights reserved.</p>
             </div>
         </div>
     </footer>
