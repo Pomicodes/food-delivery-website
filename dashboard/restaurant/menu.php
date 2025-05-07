@@ -84,13 +84,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->execute([$id]);
             
             // Then delete the menu item
-            $stmt = $pdo->prepare("DELETE FROM menu_items WHERE id = ? AND restaurant_id = ?");
-            $stmt->execute([$id, $restaurantId]);
+        $stmt = $pdo->prepare("DELETE FROM menu_items WHERE id = ? AND restaurant_id = ?");
+        $stmt->execute([$id, $restaurantId]);
             
             // Commit transaction
             $pdo->commit();
-            
-            $_SESSION['success_message'] = 'Menu item deleted successfully!';
+        
+        $_SESSION['success_message'] = 'Menu item deleted successfully!';
         } catch (PDOException $e) {
             // Rollback on error
             if ($pdo->inTransaction()) {
