@@ -551,10 +551,25 @@ function getStatusBadgeClass($status) {
                                         <i class="fas fa-phone mr-1"></i>
                                         <?= htmlspecialchars($order['customer_phone']) ?>
                                     </p>
-                                    <p class="text-sm text-gray-600">
+                                    <p class="text-sm text-gray-600 mb-2">
                                         <i class="fas fa-map-marker-alt mr-1"></i>
                                         <?= htmlspecialchars($order['customer_address']) ?>
                                     </p>
+                                    <?php if (!empty($order['customer_latitude']) && !empty($order['customer_longitude'])): ?>
+                                        <div id="map-<?= $order['id'] ?>" class="rounded-lg overflow-hidden mb-2" style="height: 180px;"></div>
+                                        <a href="https://www.google.com/maps/dir/?api=1&destination=<?= $order['customer_latitude'] ?>,<?= $order['customer_longitude'] ?>" target="_blank" class="inline-block mt-1 text-blue-600 hover:underline text-xs">
+                                            <i class="fas fa-directions mr-1"></i> Get Directions
+                                        </a>
+                                        <script>
+                                        document.addEventListener('DOMContentLoaded', function() {
+                                            if (typeof L !== 'undefined') {
+                                                var map = L.map('map-<?= $order['id'] ?>', { zoomControl: false, attributionControl: false }).setView([<?= $order['customer_latitude'] ?>, <?= $order['customer_longitude'] ?>], 16);
+                                                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+                                                L.marker([<?= $order['customer_latitude'] ?>, <?= $order['customer_longitude'] ?>]).addTo(map);
+                                            }
+                                        });
+                                        </script>
+                                    <?php endif; ?>
                                 </div>
 
                                 <!-- Order Items -->
@@ -924,5 +939,7 @@ function getStatusBadgeClass($status) {
             });
         });
     </script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 </body>
 </html>

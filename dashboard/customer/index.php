@@ -123,6 +123,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
 
     // Validate address
     $address = $_POST['delivery_address'];
+    $latitude = isset($_POST['latitude']) && $_POST['latitude'] !== '' ? $_POST['latitude'] : null;
+    $longitude = isset($_POST['longitude']) && $_POST['longitude'] !== '' ? $_POST['longitude'] : null;
     if (empty($address)) {
         $_SESSION['cart_error'] = "Please enter a delivery address";
         header("Location: index.php");
@@ -146,9 +148,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
                 $total += $item['price'] * $item['quantity'];
             }
 
-        // Insert order
-        $stmt = $pdo->prepare("INSERT INTO orders (customer_id, restaurant_id, total, status, created_at) VALUES (?, ?, ?, 'placed', NOW())");
-            $stmt->execute([$userId, $restaurantId, $total]);
+            // Insert order with lat/lng
+            $stmt = $pdo->prepare("INSERT INTO orders (customer_id, restaurant_id, total, status, created_at, customer_latitude, customer_longitude) VALUES (?, ?, ?, 'placed', NOW(), ?, ?)");
+            $stmt->execute([$userId, $restaurantId, $total, $latitude, $longitude]);
         $orderId = $pdo->lastInsertId();
 
         // Insert order items
@@ -560,7 +562,7 @@ if (isset($_GET['restaurant_id'])) {
                         <?php endif; ?>
                     </div>
                     <?php if (isset($_SESSION['cart']) && !empty($_SESSION['cart']['items'])): ?>
-                        <form method="POST" class="mt-6">
+                        <form method="POST" class="mt-6" id="order-form">
                             <div class="mb-4">
                                 <label for="delivery_address" class="block text-sm font-medium text-gray-700 mb-1">
                                     Delivery Address
@@ -573,6 +575,18 @@ if (isset($_GET['restaurant_id'])) {
                                     class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
                                 ><?= htmlspecialchars($customerAddress ?? '') ?></textarea>
                             </div>
+                            <!-- Map Location Picker Start -->
+                            <div class="mb-4">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Delivery Location</label>
+                                <button type="button" id="use-location-btn" class="flex items-center px-4 py-2 bg-gray-100 rounded hover:bg-orange-100 mb-2">
+                                    <i class="fas fa-location-arrow mr-2"></i> Use Current Location
+                                </button>
+                                <div id="map" class="rounded-lg overflow-hidden" style="height: 260px;"></div>
+                                <input type="hidden" name="latitude" id="latitude">
+                                <input type="hidden" name="longitude" id="longitude">
+                                <div class="mt-2 text-xs text-gray-500" id="map-status"></div>
+                            </div>
+                            <!-- Map Location Picker End -->
                             <button type="submit" name="place_order" class="glow-btn w-full bg-orange-500 text-white py-3 rounded-lg font-bold text-lg shadow hover:bg-orange-600 transition-all duration-200">
                                 <i class="fas fa-check-circle mr-2"></i> Place All Orders
                             </button>
@@ -612,6 +626,97 @@ if (isset($_GET['restaurant_id'])) {
             document.querySelectorAll('.fade-in').forEach(function(el, i) {
                 el.style.animationDelay = (i * 0.07) + 's';
             });
+        });
+    </script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script>
+    // --- Map and Geolocation Logic ---
+    let map, marker;
+    const defaultLat = 9.03; // Default center (e.g., Addis Ababa)
+    const defaultLng = 38.74;
+    const addressField = document.getElementById('delivery_address');
+    const latField = document.getElementById('latitude');
+    const lngField = document.getElementById('longitude');
+    const mapStatus = document.getElementById('map-status');
+
+    function setMapMarker(lat, lng, updateMap=true) {
+        if (!marker) {
+            marker = L.marker([lat, lng], {draggable:true}).addTo(map);
+            marker.on('dragend', function(e) {
+                const pos = marker.getLatLng();
+                updateLatLngFields(pos.lat, pos.lng);
+                reverseGeocode(pos.lat, pos.lng);
+            });
+        } else {
+            marker.setLatLng([lat, lng]);
+        }
+        if (updateMap) map.setView([lat, lng], 16);
+        updateLatLngFields(lat, lng);
+        reverseGeocode(lat, lng);
+    }
+
+    function updateLatLngFields(lat, lng) {
+        latField.value = lat;
+        lngField.value = lng;
+    }
+
+    function reverseGeocode(lat, lng) {
+        mapStatus.textContent = 'Searching address...';
+        fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data && data.display_name) {
+                    addressField.value = data.display_name;
+                    mapStatus.textContent = 'Address found!';
+                } else {
+                    mapStatus.textContent = 'Address not found.';
+                }
+            })
+            .catch(() => {
+                mapStatus.textContent = 'Address lookup failed.';
+            });
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        map = L.map('map').setView([defaultLat, defaultLng], 14);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        // If address already set, try to geocode it
+        if (addressField.value.trim().length > 0) {
+            fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addressField.value)}`)
+                .then(res => res.json())
+                .then(results => {
+                    if (results && results.length > 0) {
+                        setMapMarker(results[0].lat, results[0].lon);
+                    } else {
+                        setMapMarker(defaultLat, defaultLng);
+                    }
+                })
+                .catch(() => setMapMarker(defaultLat, defaultLng));
+        } else {
+            setMapMarker(defaultLat, defaultLng);
+        }
+
+        map.on('click', function(e) {
+            setMapMarker(e.latlng.lat, e.latlng.lng);
+        });
+
+        document.getElementById('use-location-btn').addEventListener('click', function() {
+            if (navigator.geolocation) {
+                mapStatus.textContent = 'Getting your location...';
+                navigator.geolocation.getCurrentPosition(function(pos) {
+                    setMapMarker(pos.coords.latitude, pos.coords.longitude);
+                    mapStatus.textContent = 'Location set!';
+                }, function() {
+                    mapStatus.textContent = 'Could not get your location.';
+                });
+            } else {
+                mapStatus.textContent = 'Geolocation not supported.';
+            }
+        });
         });
     </script>
 </body>
